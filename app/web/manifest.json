@@ -1,0 +1,11 @@
+{
+    "name": "Block Blast",
+    "short_name": "BlockBlast",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#1a1a2e",
+    "theme_color": "#1a1a2e",
+    "description": "A fun puzzle game",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false
+}
