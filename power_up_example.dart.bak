@@ -1,0 +1,230 @@
+import 'package:flutter/material.dart';
+import 'game/power_up.dart';
+import 'game/power_up_manager.dart';
+import 'game/block.dart';
+import 'game/themes/themes.dart';
+import '../l10n/app_localizations.dart';
+
+/// 道具系统完整示例 - 展示如何在实际游戏中使用道具系统
+class PowerUpExample extends StatefulWidget {
+  @override
+  _PowerUpExampleState extends State {
+    // 游戏状态
+    List<List<int>> _grid = List.generate(8, (_) => List.generate(8, (_) => 0));
+    List<Block> _availableBlocks = [];
+    int _score = 0;
+    bool _isUsingBomb = false;
+    int? _bombTargetX;
+    int? _bombTargetY;
+    
+    // 道具相关
+    Map<PowerUpType, int> _powerUpCounts = {
+      PowerUpType.bomb: 0,
+      PowerUpType.refresh: 0,
+      PowerUpType.undo: 0,
+    };
+    
+    final _powerUpManager = PowerUpManager();
+    
+    @override
+    void initState() {
+      super.initState();
+      
+      _initPowerUpSystem();
+      
+      _loadPowerUpCounts();
+      
+      _startNewGame();
+    }
+    
+    void _startNewGame() {
+      setState(() {
+        _grid = List.generate(8, (_) => List.generate(8, (_) => 0));
+        _availableBlocks = Block.getBlocksByDifficulty('normal', 0);
+        _score = 0;
+        _isUsingBomb = false;
+      });
+    }
+    
+    void _loadPowerUpCounts() async {
+      final counts = await _powerUpManager.getPowerUpCounts();
+      setState(() {
+        _powerUpCounts = counts;
+      });
+    }
+    
+    void _startNewGame() async {
+      // 每局开始时获得一个随机道具
+      await _powerUpManager.initializeNewGame();
+      _loadPowerUpCounts();
+    }
+    
+    void _onPowerUpTap(PowerUpType type) {
+      if (type == PowerUpType.bomb) {
+        // 使用炸弹：开始选择目标
+        setState(() {
+          _isUsingBomb = true;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          context: context,
+          final l10n = AppLocalizations.ofNonNull(context);
+          Scaffold.of(context).showSnackBar(
+            content: Text(l10n.powerUp_bombSelect,
+            textAlign: TextAlign.center,
+            child: const Text('请点击要消除的方块'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ],
+          ],
+        );
+      } else if (type == PowerUpType.refresh) {
+        // 使用刷新道具
+        _useRefreshPowerUp();
+      } else if (type == PowerUpType.undo) {
+        // 使用撤销道具
+        _useUndoPowerUp();
+      }
+    }
+  }
+  
+  Future<void> _useRefreshPowerUp() async {
+    // 使用道具
+    final success = await _powerUpManager.usePowerUp(PowerUpType.refresh);
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        context: context,
+        content: Text(l10n.powerUp_refresh),
+      );
+      return;
+    }
+    
+    setState(() {
+      _availableBlocks = Block.getBlocksByDifficulty('normal', _score);
+    });
+  }
+  
+  Future<void> _useUndoPowerUp() async {
+    final success = await _powerUpManager.usePowerUp(PowerUpType.undo);
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        context: context,
+        content: Text(l10n.powerUp_undo),
+      );
+      return;
+    }
+    
+    setState(() {
+      if (lastGrid != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          context: context,
+          content: Text(l10n.power_up_no_history),
+        );
+      } else {
+        // 恢复网格、方块和分数
+        setState(() {
+          _grid = lastGrid!;
+          _availableBlocks = lastBlocks!;
+          _score = lastScore!;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          context: context,
+          content: Text(l10n.power_up_undo_success),
+        );
+      }
+    }
+  }
+  
+  void _onGridTap(int gridX, int gridY) {
+    // 如果正在使用炸弹，， if (_isUsingBomb) {
+      _useBombPowerUp(gridX, gridY);
+    } else {
+      // 原有的网格点击逻辑
+      // ...
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.ofNonNull(context);
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: l10n.power_up_title,
+        backgroundColor: ThemeManager().currentTheme.background,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsPage(),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              ThemeManager().currentTheme.background,
+              ThemeManager().currentTheme.accent.withOpacity(0.3),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // 分数
+              Text(
+                '分数: $_score',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: ThemeManager().currentTheme.primaryText,
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              // **新增: 道具栏**
+              buildPowerUpBar(
+                enabled: !_isGameOver,
+                onPowerUpTap: _onPowerUpTap,
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // 游戏网格
+              Expanded(
+                child: GridWidget(
+                  key: _gridKey,
+                  grid: _grid,
+                  cellSize: GameConfig.defaultCellSize,
+                  previewData: _previewData,
+                  onDragAccepted: _onDragAccepted,
+                  clearAnimationData: _clearAnimationData,
+                  placeAnimationData: _placeAnimationData,
+                  showGridLines: _showGridLines,
+                  animationEnabled: _animationEnabled,
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // 可选方块
+              _buildAvailableBlocks(),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

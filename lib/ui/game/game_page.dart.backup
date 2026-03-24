@@ -1,0 +1,445 @@
+// lib/ui/game/game_page.dart
+
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/game/providers.dart';
+import '../../providers/settings/settings_provider.dart';
+import '../../providers/theme/theme_provider.dart';
+import '../../game/block.dart';
+import '../../game/power_up.dart';
+import '../../game/haptic.dart';
+import '../../game/themes/theme_manager.dart';
+import '../../l10n/app_localizations.dart';
+import '../settings_page.dart';
+import '../help_page.dart';
+import '../game_over_dialog.dart';
+import '../power_up_mixin.dart';
+import 'animations/animation_controllers.dart';
+import 'widgets/game_grid.dart';
+import 'widgets/block_pool.dart';
+import 'widgets/score_display.dart';
+import 'widgets/combo_effect.dart';
+import 'widgets/power_up_bar.dart';
+import 'widgets/timed_mode_display.dart';
+import 'widgets/pause_overlay.dart';
+
+/// 游戏主页面
+class GamePage extends ConsumerStatefulWidget {
+  final GameMode mode;
+
+  const GamePage({
+    super.key,
+    this.mode = GameMode.classic,
+  });
+
+  @override
+  ConsumerState<GamePage> createState() => _GamePageState();
+}
+
+class _GamePageState extends ConsumerState<GamePage>
+    with TickerProviderStateMixin, PowerUpMixin {
+  late final AnimationControllers _controllers;
+  int _lastScoreIncrease = 0;
+  bool _isBombSelectionMode = false;
+  Timer? _gameTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = AnimationControllers(this);
+    initPowerUpSystem();
+    initPowerUpAnimations(this);
+    
+    // 设置游戏模式
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(gameModeProvider.notifier).state = widget.mode;
+      
+      // 计时模式启动倒计时
+      if (widget.mode == GameMode.timed) {
+        _startCountdown();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _gameTimer?.cancel();
+    disposePowerUpSystem();
+    _controllers.dispose();
+    super.dispose();
+  }
+
+  /// 启动计时模式倒计时
+  void _startCountdown() {
+    _gameTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final currentState = ref.read(gameProvider);
+      if (currentState.isPaused || currentState.isGameOver) {
+        return;
+      }
+      
+      final newSeconds = currentState.remainingSeconds - 1;
+      ref.read(gameProvider.notifier).updateRemainingSeconds(newSeconds);
+      
+      if (newSeconds <= 0) {
+        timer.cancel();
+        ref.read(gameProvider.notifier).onTimeUp();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isPaused = ref.watch(isPausedProvider);
+    final isGameOver = ref.watch(isGameOverProvider);
+    final comboState = ref.watch(comboStateProvider);
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: _buildAppBar(),
+      body: Stack(
+        children: [
+          _buildGameBody(),
+          if (isPaused) PauseOverlay(onResume: _togglePause),
+          if (isGameOver && !isPaused) _buildGameOverListener(),
+        ],
+      ),
+      floatingActionButton: _buildFloatingActionButton(),
+    );
+  }
+
+  Widget _buildAppBar() {
+    final theme = ref.watch(themeManagerProvider).currentTheme;
+    return AppBar(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      title: Text('Block Blast', style: TextStyle(color: theme.primaryText)),
+      actions: [
+        // 分数显示 - 独立重绘层
+        RepaintBoundary(
+          key: const ValueKey('score_display'),
+          child: ScoreDisplay(
+            lastScoreIncrease: _lastScoreIncrease,
+            onAnimationComplete: () {
+              setState(() {
+                _lastScoreIncrease = 0;
+              });
+            },
+          ),
+        ),
+        IconButton(
+          icon: Icon(
+            ref.watch(isPausedProvider) ? Icons.play_arrow : Icons.pause,
+            color: theme.primaryText,
+          ),
+          onPressed: _togglePause,
+        ),
+        IconButton(
+          icon: Icon(Icons.help_outline, color: theme.primaryText),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const HelpPage()),
+          ),
+        ),
+        IconButton(
+          icon: Icon(Icons.settings, color: theme.primaryText),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SettingsPage()),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGameBody() {
+    final gameMode = ref.watch(gameModeProvider);
+    final isGameOver = ref.watch(gameProvider.select((s) => s.isGameOver));
+    final isPaused = ref.watch(gameProvider.select((s) => s.isPaused));
+    final comboState = ref.watch(comboStateProvider);
+
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+        if (gameMode == GameMode.timed)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: TimedModeDisplay(),
+          ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: PowerUpBar(
+            enabled: !isGameOver && !isPaused,
+            onPowerUpTap: _onPowerUpTap,
+          ),
+        ),
+        Center(
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // 游戏网格 - 独立重绘层
+              RepaintBoundary(
+                key: const ValueKey('game_grid'),
+                child: GameGrid(
+                  controllers: _controllers,
+                  onPlaceBlock: _placeBlock,
+                  onBombTap: _useBomb,
+                  isBombSelectionMode: _isBombSelectionMode,
+                ),
+              ),
+              // 连击特效 - 频繁动画，独立重绘
+              if (comboState != null)
+                RepaintBoundary(
+                  key: const ValueKey('combo_effect'),
+                  child: ComboEffect(
+                    state: comboState,
+                    onComplete: () {
+                      ref.read(gameProvider.notifier).clearComboEffect();
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const Spacer(),
+        // 方块池 - 独立重绘层
+        RepaintBoundary(
+          key: const ValueKey('block_pool'),
+          child: BlockPool(
+            controllers: _controllers,
+            onBlockSelected: _selectBlock,
+          ),
+        ),
+        const SizedBox(height: 20),
+        _buildDragHint(),
+      ],
+    );
+  }
+
+  Widget _buildDragHint() {
+    final dragState = ref.watch(dragStateProvider);
+    final selectedBlock = ref.watch(selectedBlockProvider);
+    final theme = ref.watch(themeManagerProvider).currentTheme;
+
+    if (dragState.isDragging && dragState.draggingBlock != null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(
+          dragState.previewData?.canPlace == true ? '松开放置方块' : '位置无效',
+          style: TextStyle(
+            color: dragState.previewData?.canPlace == true
+                ? theme.accent
+                : theme.error,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    } else if (selectedBlock != null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Text(
+          '拖拽方块到网格上',
+          style: TextStyle(color: theme.secondaryText, fontSize: 14),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget? _buildFloatingActionButton() {
+    final selectedBlock = ref.watch(selectedBlockProvider);
+    final isDragging = ref.watch(dragStateProvider).isDragging;
+    final theme = ref.watch(themeManagerProvider).currentTheme;
+
+    if (selectedBlock != null && !isDragging) {
+      return FloatingActionButton(
+        onPressed: _showPlaceDialog,
+        backgroundColor: theme.accent,
+        child: const Icon(Icons.add),
+      );
+    }
+    return null;
+  }
+
+  Widget _buildGameOverListener() {
+    // 监听游戏结束状态，显示对话框
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && ref.read(isGameOverProvider)) {
+        _showGameOverDialog();
+      }
+    });
+    return const SizedBox.shrink();
+  }
+
+  void _togglePause() {
+    ref.read(gameProvider.notifier).togglePause();
+  }
+
+  void _selectBlock(Block? block) {
+    ref.read(gameProvider.notifier).selectBlock(block);
+  }
+
+  void _placeBlock(int gridX, int gridY, Block block) {
+    final gameState = ref.read(gameProvider);
+    saveCurrentState(gameState.grid, gameState.availableBlocks, gameState.score);
+    
+    // 计算分数增量
+    final scoreIncrease = block.shape.length;
+    setState(() {
+      _lastScoreIncrease = scoreIncrease;
+    });
+    
+    ref.read(gameProvider.notifier).placeBlock(gridX, gridY, block);
+  }
+
+  void _showPlaceDialog() {
+    final selectedBlock = ref.read(selectedBlockProvider);
+    if (selectedBlock == null) return;
+
+    final theme = ref.watch(themeManagerProvider).currentTheme;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: theme.dialogBackground,
+        title: Text('选择放置位置', style: TextStyle(color: theme.primaryText)),
+        content: SizedBox(
+          width: 320,
+          height: 320,
+          child: GestureDetector(
+            onTapUp: (details) {
+              final tapX = details.localPosition.dx;
+              final tapY = details.localPosition.dy;
+              final cellSize = 40.0;
+              final gridX = (tapX / cellSize).floor();
+              final gridY = (tapY / cellSize).floor();
+
+              Navigator.pop(context);
+              _placeBlock(gridX, gridY, selectedBlock);
+            },
+            child: GameGrid(controllers: _controllers),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('取消', style: TextStyle(color: theme.secondaryText)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onPowerUpTap(PowerUpType type) {
+    if (isUsingPowerUp) {
+      cancelPowerUp();
+      return;
+    }
+
+    switch (type) {
+      case PowerUpType.bomb:
+        _showBombSelectionDialog();
+        break;
+      case PowerUpType.refresh:
+        _useRefreshPowerUp();
+        break;
+      case PowerUpType.undo:
+        _useUndoPowerUp();
+        break;
+    }
+  }
+
+  void _showBombSelectionDialog() {
+    final theme = ref.watch(themeManagerProvider).currentTheme;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: theme.dialogBackground,
+        title: Text('💣 选择炸弹位置', style: TextStyle(color: theme.primaryText)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: theme.warning.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Text('💣', style: TextStyle(fontSize: 48)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '点击网格中的方块来炸毁它',
+              style: TextStyle(color: theme.secondaryText, fontSize: 16),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              cancelPowerUp();
+            },
+            child: Text('取消', style: TextStyle(color: theme.secondaryText)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _isBombSelectionMode = true;
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.accent,
+              foregroundColor: theme.primaryText,
+            ),
+            child: const Text('开始选择'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _useBomb(int gridX, int gridY) {
+    final gameState = ref.read(gameProvider);
+    ref.read(gameProvider.notifier).useBomb(gridX, gridY, 0);
+    setState(() {
+      _isBombSelectionMode = false;
+    });
+  }
+
+  void _useRefreshPowerUp() {
+    ref.read(gameProvider.notifier).refreshBlocks();
+    HapticManager.light();
+  }
+
+  void _useUndoPowerUp() {
+    final success = ref.read(gameProvider.notifier).undo();
+    if (success) {
+      HapticManager.light();
+    }
+  }
+
+  void _showGameOverDialog() {
+    final gameState = ref.read(gameProvider);
+    final isNewRecord = gameState.score >= gameState.highScore && gameState.score > 0;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => GameOverDialog(
+        score: gameState.score,
+        highScore: gameState.highScore,
+        isNewRecord: isNewRecord,
+        onRestart: () {
+          Navigator.pop(context);
+          ref.read(gameProvider.notifier).startNewGame();
+        },
+      ),
+    );
+  }
+
+
+}
