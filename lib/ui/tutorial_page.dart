@@ -16,18 +16,15 @@ class TutorialPage extends ConsumerStatefulWidget {
 
 class _TutorialPageState extends ConsumerState<TutorialPage> {
   static const String _keyTutorialShown = 'block_blast_tutorial_shown';
-  
+
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  late final List<TutorialStep> _steps;
+  List<TutorialStep>? _steps;
 
-  @override
-  void initState() {
-    super.initState();
-    final theme = ref.read(themeManagerProvider).currentTheme;
-    final l10n = AppLocalizations.ofNonNull(context);
-    _steps = [
+  /// 获取引导步骤（延迟初始化，需要 context）
+  List<TutorialStep> _getSteps(AppLocalizations l10n, AppTheme theme) {
+    return [
       TutorialStep(
         icon: Icons.celebration,
         iconColor: theme.combo2,
@@ -81,6 +78,10 @@ class _TutorialPageState extends ConsumerState<TutorialPage> {
   Widget build(BuildContext context) {
     final theme = ref.watch(themeManagerProvider).currentTheme;
     final l10n = AppLocalizations.ofNonNull(context);
+
+    // 延迟初始化步骤（需要 context 来获取本地化字符串）
+    _steps ??= _getSteps(l10n, theme);
+
     return Scaffold(
       backgroundColor: theme.background,
       body: SafeArea(
@@ -113,9 +114,9 @@ class _TutorialPageState extends ConsumerState<TutorialPage> {
                         _currentPage = index;
                       });
                     },
-                    itemCount: _steps.length,
+                    itemCount: _steps!.length,
                     itemBuilder: (context, index) {
-                      return _buildTutorialStep(_steps[index], theme);
+                      return _buildTutorialStep(_steps![index], theme);
                     },
                   ),
                 ),
@@ -128,7 +129,7 @@ class _TutorialPageState extends ConsumerState<TutorialPage> {
                       // 页面指示器
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(_steps.length, (index) {
+                        children: List.generate(_steps!.length, (index) {
                           return AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -147,7 +148,7 @@ class _TutorialPageState extends ConsumerState<TutorialPage> {
                       const SizedBox(height: 32),
                       
                       // 按钮
-                      if (_currentPage == _steps.length - 1)
+                      if (_currentPage == _steps!.length - 1)
                         // 最后一页显示"开始游戏"按钮
                         SizedBox(
                           width: double.infinity,
