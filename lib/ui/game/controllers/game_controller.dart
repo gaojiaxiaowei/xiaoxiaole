@@ -114,14 +114,25 @@ class GameController with PowerUpMixin {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => GameOverDialog(
+      builder: (context) => GameOverDialogContent(
         score: gameState.score,
         highScore: gameState.highScore,
         isNewRecord: isNewRecord,
-        onRestart: () {
+        stats: GameStats(
+          score: gameState.score,
+          blocksPlaced: gameState.stats.rowsCleared + gameState.stats.colsCleared, // 近似
+          rowsCleared: gameState.stats.rowsCleared,
+          colsCleared: gameState.stats.colsCleared,
+          maxCombo: gameState.stats.maxCombo,
+        ),
+        gameMode: gameState.gameMode,
+        onPlayAgain: () {
           Navigator.pop(context);
           _ref.read(gameProvider.notifier).startNewGame();
         },
+        highScoreText: '最高分',
+        playAgainText: '再来一局',
+        gameOverText: '游戏结束',
       ),
     );
   }

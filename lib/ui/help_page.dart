@@ -175,7 +175,7 @@ class HelpPage extends ConsumerWidget {
     required Color iconColor,
     required String title,
     required String description,
-    required AppTheme theme,
+    required ThemeManager theme,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),

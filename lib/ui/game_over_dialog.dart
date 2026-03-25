@@ -230,7 +230,7 @@ class _GameOverDialogContentState extends ConsumerState<GameOverDialogContent>
         );
   }
 
-  Widget _buildHeader(AppTheme theme, AppLocalizations l10n) {
+  Widget _buildHeader(ThemeManager theme, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       child: Column(
@@ -317,7 +317,7 @@ class _GameOverDialogContentState extends ConsumerState<GameOverDialogContent>
     );
   }
 
-  Widget _buildScoreSection(AppTheme theme, AppLocalizations l10n) {
+  Widget _buildScoreSection(ThemeManager theme, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
@@ -379,7 +379,7 @@ class _GameOverDialogContentState extends ConsumerState<GameOverDialogContent>
     );
   }
 
-  Widget _buildStatsSection(AppTheme theme, AppLocalizations l10n) {
+  Widget _buildStatsSection(ThemeManager theme, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
@@ -413,7 +413,7 @@ class _GameOverDialogContentState extends ConsumerState<GameOverDialogContent>
     );
   }
 
-  Widget _buildStatItem(String emoji, String label, int value, AppTheme theme) {
+  Widget _buildStatItem(String emoji, String label, int value, ThemeManager theme) {
     return Column(
       children: [
         Text(emoji, style: const TextStyle(fontSize: 20)),
@@ -435,7 +435,7 @@ class _GameOverDialogContentState extends ConsumerState<GameOverDialogContent>
     );
   }
 
-  Widget _buildHighScoreSection(AppTheme theme, AppLocalizations l10n) {
+  Widget _buildHighScoreSection(ThemeManager theme, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -474,7 +474,7 @@ class _GameOverDialogContentState extends ConsumerState<GameOverDialogContent>
     );
   }
 
-  Widget _buildButtons(AppTheme theme, AppLocalizations l10n) {
+  Widget _buildButtons(ThemeManager theme, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: Column(
@@ -609,7 +609,7 @@ class _GameOverDialogContentState extends ConsumerState<GameOverDialogContent>
     );
   }
 
-  Color _getRankColor(int rank, AppTheme theme) {
+  Color _getRankColor(int rank, ThemeManager theme) {
     switch (rank) {
       case 1:
         return theme.combo2;
@@ -660,7 +660,7 @@ class _Confetti {
 /// 彩带绘制器
 class _ConfettiPainter extends CustomPainter {
   final List<_Confetti> confettiList;
-  final AppTheme theme;
+  final ThemeManager theme;
 
   _ConfettiPainter(this.confettiList, this.theme);
 
