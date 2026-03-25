@@ -25,7 +25,7 @@ class _TutorialPageState extends ConsumerState<TutorialPage> {
   @override
   void initState() {
     super.initState();
-    final theme = ref.read(themeManagerProvider);
+    final theme = ref.read(themeManagerProvider).currentTheme;
     final l10n = AppLocalizations.ofNonNull(context);
     _steps = [
       TutorialStep(
@@ -79,7 +79,7 @@ class _TutorialPageState extends ConsumerState<TutorialPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ref.watch(themeManagerProvider);
+    final theme = ref.watch(themeManagerProvider).currentTheme;
     final l10n = AppLocalizations.ofNonNull(context);
     return Scaffold(
       backgroundColor: theme.background,

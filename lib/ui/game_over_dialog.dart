@@ -134,13 +134,14 @@ class _GameOverDialogContentState extends ConsumerState<GameOverDialogContent>
   }
 
   Color _getRandomColor(math.Random random) {
+    // 使用固定颜色列表，因为此方法在 initState 中调用，不能使用 ref
     final colors = [
-      GameTheme.combo2, // 黄色
-      GameTheme.combo3, // 橙色
-      GameTheme.combo4, // 红色
-      GameTheme.combo5, // 紫色
-      GameTheme.accent, // 主题强调色
-      GameTheme.warning, // 警告色
+      const Color(0xFFFFD700), // 金黄色
+      const Color(0xFFFF8C00), // 橙色
+      const Color(0xFFFF4444), // 红色
+      const Color(0xFF9B59B6), // 紫色
+      const Color(0xFF00BCD4), // 青色
+      const Color(0xFFFF9800), // 警告色
     ];
     return colors[random.nextInt(colors.length)];
   }

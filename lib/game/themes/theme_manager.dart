@@ -88,4 +88,42 @@ class ThemeManager extends ChangeNotifier {
       await setTheme(availableThemes[index].id);
     }
   }
+
+  // ========== 代理属性（转发到 currentTheme）==========
+  
+  /// 主题强调色
+  Color get accent => _currentTheme.accent;
+  
+  /// 主要文字色
+  Color get primaryText => _currentTheme.primaryText;
+  
+  /// 次要文字色
+  Color get secondaryText => _currentTheme.secondaryText;
+  
+  /// 主背景色
+  Color get background => _currentTheme.background;
+  
+  /// 卡片/容器背景色
+  Color get cardBackground => _currentTheme.cardBackground;
+  
+  /// 对话框背景色
+  Color get dialogBackground => _currentTheme.dialogBackground;
+  
+  /// 错误/危险色
+  Color get error => _currentTheme.error;
+  
+  /// 警告色
+  Color get warning => _currentTheme.warning;
+  
+  /// 2连击颜色
+  Color get combo2 => _currentTheme.combo2;
+  
+  /// 3连击颜色
+  Color get combo3 => _currentTheme.combo3;
+  
+  /// 4连击颜色
+  Color get combo4 => _currentTheme.combo4;
+  
+  /// 5连击及以上颜色
+  Color get combo5 => _currentTheme.combo5;
 }

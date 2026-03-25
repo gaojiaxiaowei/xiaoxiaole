@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/game/providers.dart';
+import '../../../providers/game/game_state.dart';
 import '../../../providers/theme/theme_provider.dart';
 import '../../../game/block.dart';
 import '../../../game/power_up.dart';
@@ -13,7 +14,7 @@ import '../power_up_mixin.dart';
 
 /// 游戏控制器 - 管理游戏业务逻辑
 class GameController with PowerUpMixin {
-  final Ref _ref;
+  final WidgetRef _ref;
   final TimerManager _timerManager;
   final TickerProvider _tickerProvider;
   final Function(void Function()) _setState;

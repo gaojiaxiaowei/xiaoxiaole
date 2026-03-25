@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/game/providers.dart';
+import '../../../providers/game/game_state.dart';
 import '../../../providers/theme/theme_provider.dart';
 import '../../game/controllers/game_controller.dart';
 import '../animations/animation_controllers.dart';

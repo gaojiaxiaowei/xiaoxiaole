@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/theme/theme_provider.dart';
 import '../../../providers/game/providers.dart';
+import '../../../providers/game/game_state.dart';
 import '../../../providers/settings/settings_provider.dart';
 import '../../../game/block.dart';
 import '../../../game/drag.dart';
 import '../../../game/grid.dart' as grid_widget;
-import '../../../game/grid.dart' show BlockDragData;
 import '../../../game/themes/theme_manager.dart';
 import '../animations/animation_controllers.dart';
 
@@ -177,7 +177,7 @@ class _GameGridState extends ConsumerState<GameGrid> {
     }
 
     // 正常模式
-    return DragTarget<BlockDragData>(
+    return DragTarget<grid_widget.BlockDragData>(
       key: _gridKey,
       onWillAcceptWithDetails: (details) {
         if (details.data.block == null) return false;

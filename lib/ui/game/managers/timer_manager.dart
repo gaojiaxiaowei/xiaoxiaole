@@ -6,7 +6,7 @@ import '../../../providers/game/providers.dart';
 
 /// 计时模式管理器
 class TimerManager {
-  final Ref _ref;
+  final WidgetRef _ref;
   Timer? _gameTimer;
 
   TimerManager(this._ref);

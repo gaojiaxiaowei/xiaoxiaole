@@ -14,6 +14,7 @@ import 'widgets/game_grid.dart';
 import 'widgets/score_display.dart';
 import 'widgets/pause_overlay.dart';
 import 'widgets/game_body_widget.dart';
+import '../../providers/game/game_state.dart';
 
 /// 游戏主页面 - 只负责UI布局
 class GamePage extends ConsumerStatefulWidget {
@@ -77,7 +78,7 @@ class _GamePageState extends ConsumerState<GamePage>
     );
   }
 
-  Widget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar() {
     final theme = ref.watch(themeManagerProvider).currentTheme;
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.surface,

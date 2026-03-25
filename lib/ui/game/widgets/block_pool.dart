@@ -30,7 +30,7 @@ class BlockPool extends ConsumerWidget {
     final theme = ref.watch(themeManagerProvider).currentTheme;
 
     if (isPaused) {
-      return _buildPausedPool(availableBlocks);
+      return _buildPausedPool(availableBlocks, ref);
     }
 
     return Container(
@@ -56,7 +56,7 @@ class BlockPool extends ConsumerWidget {
     );
   }
 
-  Widget _buildPausedPool(List<Block> blocks) {
+  Widget _buildPausedPool(List<Block> blocks, WidgetRef ref) {
     final theme = ref.watch(themeManagerProvider).currentTheme;
     return IgnorePointer(
       ignoring: true,
@@ -115,7 +115,7 @@ class BlockPool extends ConsumerWidget {
           onDragEnd: (details) {
             controllers.reverseDragScaleAnimation();
           },
-          feedback: _buildBlockFeedback(block),
+          feedback: _buildBlockFeedback(block, ref),
           childWhenDragging: Opacity(
             opacity: 0.3,
             child: _buildBlockPreview(block, 28),
@@ -160,7 +160,7 @@ class BlockPool extends ConsumerWidget {
     );
   }
 
-  Widget _buildBlockFeedback(Block block) {
+  Widget _buildBlockFeedback(Block block, WidgetRef ref) {
     final theme = ref.watch(themeManagerProvider).currentTheme;
     return Material(
       color: Colors.transparent,

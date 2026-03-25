@@ -40,9 +40,9 @@ class _StatsPageState extends ConsumerState<StatsPage> {
 
   // 重置统计数据
   Future<void> _resetStats() async {
-    final theme = ref.read(themeManagerProvider);
+    final theme = ref.read(themeManagerProvider).currentTheme;
     final l10n = AppLocalizations.ofNonNull(context);
-    
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -77,7 +77,7 @@ class _StatsPageState extends ConsumerState<StatsPage> {
     if (confirmed == true) {
       await ref.read(statsManagerProvider).resetAllStats();
       await _loadStats();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -104,170 +104,171 @@ class _StatsPageState extends ConsumerState<StatsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ref.watch(themeManagerProvider);
+    final theme = ref.watch(themeManagerProvider).currentTheme;
     final l10n = AppLocalizations.ofNonNull(context);
-    
+
     return Scaffold(
-          backgroundColor: theme.background,
-          appBar: AppBar(
-            backgroundColor: theme.cardBackground,
-            title: Text(
-              l10n.gameStats,
-              style: TextStyle(color: theme.primaryText),
-            ),
-            iconTheme: IconThemeData(color: theme.primaryText),
-            actions: [
-              IconButton(
-                icon: Icon(Icons.refresh, color: theme.primaryText),
-                onPressed: _resetStats,
-                tooltip: l10n.resetStats,
-              ),
-            ],
+      backgroundColor: theme.background,
+      appBar: AppBar(
+        backgroundColor: theme.cardBackground,
+        title: Text(
+          l10n.gameStats,
+          style: TextStyle(color: theme.primaryText),
+        ),
+        iconTheme: IconThemeData(color: theme.primaryText),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh, color: theme.primaryText),
+            onPressed: _resetStats,
+            tooltip: l10n.resetStats,
           ),
-          body: _isLoading
-              ? Center(
-                  child: CircularProgressIndicator(
-                    color: theme.accent,
+        ],
+      ),
+      body: _isLoading
+          ? Center(
+              child: CircularProgressIndicator(
+                color: theme.accent,
+              ),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // 总游戏局数
+                _buildStatCard(
+                  icon: Icons.games,
+                  iconColor: theme.accent,
+                  title: l10n.totalGames,
+                  value: '${_stats['totalGames'] ?? 0}',
+                  subtitle: l10n.gamesUnit,
+                  theme: theme,
+                ),
+
+                const SizedBox(height: 12),
+
+                // 最高分
+                _buildStatCard(
+                  icon: Icons.emoji_events,
+                  iconColor: theme.combo2,
+                  title: l10n.highestScore,
+                  value: '${_stats['highScore'] ?? 0}',
+                  subtitle: l10n.scoreUnit,
+                  theme: theme,
+                ),
+
+                const SizedBox(height: 12),
+
+                // 累计消除行数
+                _buildStatCard(
+                  icon: Icons.view_stream,
+                  iconColor: theme.accent,
+                  title: l10n.totalRowsCleared,
+                  value: '${_stats['totalRowsCleared'] ?? 0}',
+                  subtitle: l10n.rowsUnit,
+                  theme: theme,
+                ),
+
+                const SizedBox(height: 12),
+
+                // 累计消除列数
+                _buildStatCard(
+                  icon: Icons.view_column,
+                  iconColor: theme.combo5,
+                  title: l10n.totalColsCleared,
+                  value: '${_stats['totalColsCleared'] ?? 0}',
+                  subtitle: l10n.colsUnit,
+                  theme: theme,
+                ),
+
+                const SizedBox(height: 12),
+
+                // 最高连击
+                _buildStatCard(
+                  icon: Icons.bolt,
+                  iconColor: theme.warning,
+                  title: l10n.highestCombo,
+                  value: '${_stats['maxCombo'] ?? 0}',
+                  subtitle: l10n.comboUnit,
+                  theme: theme,
+                ),
+
+                const SizedBox(height: 12),
+
+                // 总游戏时长
+                _buildStatCard(
+                  icon: Icons.schedule,
+                  iconColor: theme.error,
+                  title: l10n.totalPlayTime,
+                  value: _formatPlayTime(_stats['totalPlayTime'] ?? 0, l10n),
+                  subtitle: '',
+                  theme: theme,
+                ),
+
+                const SizedBox(height: 24),
+
+                // 分数历史记录标题
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.history, color: theme.combo3, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n.recent10Games,
+                        style: TextStyle(
+                          color: theme.primaryText,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                )
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    // 总游戏局数
-                    _buildStatCard(
-                      icon: Icons.games,
-                      iconColor: theme.accent,
-                      title: l10n.totalGames,
-                      value: '${_stats['totalGames'] ?? 0}',
-                      subtitle: l10n.gamesUnit,
-                      theme: theme,
+                ),
+
+                const SizedBox(height: 12),
+
+                // 分数历史记录列表
+                if (_scoreHistory.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: theme.cardBackground,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    
-                    const SizedBox(height: 12),
-                    
-                    // 最高分
-                    _buildStatCard(
-                      icon: Icons.emoji_events,
-                      iconColor: theme.combo2,
-                      title: l10n.highestScore,
-                      value: '${_stats['highScore'] ?? 0}',
-                      subtitle: l10n.scoreUnit,
-                      theme: theme,
-                    ),
-                    
-                    const SizedBox(height: 12),
-                    
-                    // 累计消除行数
-                    _buildStatCard(
-                      icon: Icons.view_stream,
-                      iconColor: theme.accent,
-                      title: l10n.totalRowsCleared,
-                      value: '${_stats['totalRowsCleared'] ?? 0}',
-                      subtitle: l10n.rowsUnit,
-                      theme: theme,
-                    ),
-                    
-                    const SizedBox(height: 12),
-                    
-                    // 累计消除列数
-                    _buildStatCard(
-                      icon: Icons.view_column,
-                      iconColor: theme.combo5,
-                      title: l10n.totalColsCleared,
-                      value: '${_stats['totalColsCleared'] ?? 0}',
-                      subtitle: l10n.colsUnit,
-                      theme: theme,
-                    ),
-                    
-                    const SizedBox(height: 12),
-                    
-                    // 最高连击
-                    _buildStatCard(
-                      icon: Icons.bolt,
-                      iconColor: theme.warning,
-                      title: l10n.highestCombo,
-                      value: '${_stats['maxCombo'] ?? 0}',
-                      subtitle: l10n.comboUnit,
-                      theme: theme,
-                    ),
-                    
-                    const SizedBox(height: 12),
-                    
-                    // 总游戏时长
-                    _buildStatCard(
-                      icon: Icons.schedule,
-                      iconColor: theme.error,
-                      title: l10n.totalPlayTime,
-                      value: _formatPlayTime(_stats['totalPlayTime'] ?? 0, l10n),
-                      subtitle: '',
-                      theme: theme,
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // 分数历史记录标题
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Row(
-                        children: [
-                          Icon(Icons.history, color: theme.combo3, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            l10n.recent10Games,
-                            style: TextStyle(
-                              color: theme.primaryText,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                    child: Center(
+                      child: Text(
+                        l10n.noGameRecords,
+                        style: TextStyle(color: theme.secondaryText, fontSize: 14),
                       ),
                     ),
-                    
-                    const SizedBox(height: 12),
-                    
-                    // 分数历史记录列表
-                    if (_scoreHistory.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: theme.cardBackground,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: Text(
-                            l10n.noGameRecords,
-                            style: TextStyle(color: theme.secondaryText, fontSize: 14),
-                          ),
-                        ),
-                      )
-                    else
-                      ..._buildScoreHistoryList(theme, l10n),
-                    
-                    const SizedBox(height: 12),
-                    
-                    // 趋势图（如果有足够数据）
-                    if (_scoreHistory.length >= 3) _buildTrendChart(theme, l10n),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // 返回按钮
-                    ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back),
-                      label: Text(l10n.backToSettings),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.accent,
-                        foregroundColor: theme.primaryText,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
+                  )
+                else
+                  ..._buildScoreHistoryList(theme, l10n),
+
+                const SizedBox(height: 12),
+
+                // 趋势图（如果有足够数据）
+                if (_scoreHistory.length >= 3) _buildTrendChart(theme, l10n),
+
+                const SizedBox(height: 32),
+
+                // 返回按钮
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back),
+                  label: Text(l10n.backToSettings),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.accent,
+                    foregroundColor: theme.primaryText,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
-                );
-      }
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
 
   // 构建统计卡片
   Widget _buildStatCard({
