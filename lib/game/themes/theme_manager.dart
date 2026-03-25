@@ -126,4 +126,7 @@ class ThemeManager extends ChangeNotifier {
   
   /// 5连击及以上颜色
   Color get combo5 => _currentTheme.combo5;
+
+  /// 对话框项背景色
+  Color get dialogItemBackground => _currentTheme.dialogItemBackground;
 }

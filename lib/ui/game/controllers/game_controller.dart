@@ -3,11 +3,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/game/providers.dart';
-import '../../../providers/game/game_state.dart';
+import '../../../providers/game/game_state.dart' hide GameStats;
 import '../../../providers/theme/theme_provider.dart';
 import '../../../game/block.dart';
 import '../../../game/power_up.dart';
 import '../../../game/haptic.dart';
+import '../../../game/stats_manager.dart' as stats;
 import '../managers/timer_manager.dart';
 import '../../game_over_dialog.dart';
 import '../power_up_mixin.dart';
@@ -111,6 +112,18 @@ class GameController with PowerUpMixin {
     final isNewRecord =
         gameState.score >= gameState.highScore && gameState.score > 0;
 
+    // 转换 GameMode 类型
+    stats.GameMode convertGameMode(GameMode mode) {
+      switch (mode) {
+        case GameMode.timed:
+          return stats.GameMode.timed;
+        case GameMode.classic:
+        case GameMode.daily:
+        default:
+          return stats.GameMode.classic;
+      }
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -125,7 +138,7 @@ class GameController with PowerUpMixin {
           colsCleared: gameState.stats.colsCleared,
           maxCombo: gameState.stats.maxCombo,
         ),
-        gameMode: gameState.gameMode,
+        gameMode: convertGameMode(gameState.gameMode),
         onPlayAgain: () {
           Navigator.pop(context);
           _ref.read(gameProvider.notifier).startNewGame();
