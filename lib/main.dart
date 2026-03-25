@@ -6,6 +6,8 @@ import 'ui/game/game_page.dart';
 import 'ui/tutorial_page.dart';
 import 'game/themes/themes.dart';
 import 'providers/theme/theme_provider.dart';
+import 'providers/power_up/power_up_provider.dart';
+import 'providers/stats/stats_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
