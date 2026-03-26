@@ -29,7 +29,13 @@ class _BlockBlastAppState extends ConsumerState<BlockBlastApp> {
   @override
   void initState() {
     super.initState();
-    // 初始化主题管理器
+
+    // 同步预初始化 PowerUpManager，确保全局实例可用
+    // 这必须在 GamePage 创建之前完成，否则 GameController 会崩溃
+    // ignore: unused_result
+    ref.read(powerUpManagerProvider);
+
+    // 初始化主题管理器（异步）
     Future.microtask(() async {
       await ref.read(themeManagerProvider).initialize();
     });
